@@ -1,63 +1,105 @@
 let currentPeriodId = null;
 let currentPayrollData = null;
 let studentsList = [];
+let periodsList = [];
 
-// Initialize on page load
+const VIEW_METADATA = {
+  'view-dashboard': {
+    title: 'Dashboard Overview',
+    subtitle: 'High-level attendance analytics and payroll disbursal metrics'
+  },
+  'view-payroll': {
+    title: 'Payroll Calculation & Payouts',
+    subtitle: 'Strict 70% attendance threshold computation sheet'
+  },
+  'view-attendance': {
+    title: 'Log Daily Attendance',
+    subtitle: 'Mark and record student attendance for any session date'
+  },
+  'view-students': {
+    title: 'Student Directory & Stipend Rates',
+    subtitle: 'Manage enrolled students and their assigned daily stipend amounts'
+  },
+  'view-cohorts': {
+    title: 'Academic Cohorts & Periods',
+    subtitle: 'Define pay periods, required sessions, and threshold percentages'
+  }
+};
+
+// Initialize on DOM load
 document.addEventListener('DOMContentLoaded', async () => {
-  // Set default date for attendance picker
-  const today = new Date().toISOString().split('T')[0];
   const datePicker = document.getElementById('attendance-date-picker');
   if (datePicker) {
-    datePicker.value = "2026-10-15"; // matches our sample cohort dates or today
+    datePicker.value = "2026-10-15";
   }
 
   await loadPeriods();
 });
 
-// Switch Tabs
-function switchTab(tabId) {
-  const tabs = ['tab-payroll', 'tab-attendance', 'tab-students'];
-  tabs.forEach(t => {
-    const el = document.getElementById(t);
-    const btn = document.getElementById('tab-btn-' + t.replace('tab-', ''));
-    if (t === tabId) {
-      el.classList.remove('hidden');
-      btn.className = "py-3 border-b-2 border-emerald-600 text-emerald-700 font-semibold flex items-center gap-2";
+// View Switcher: Shows ONLY the selected view, hiding all others completely
+function switchView(viewId) {
+  const allViews = ['view-dashboard', 'view-payroll', 'view-attendance', 'view-students', 'view-cohorts'];
+  
+  allViews.forEach(v => {
+    const section = document.getElementById(v);
+    const navBtn = document.getElementById('nav-btn-' + v.replace('view-', ''));
+    
+    if (v === viewId) {
+      if (section) section.classList.remove('hidden');
+      if (navBtn) {
+        navBtn.classList.add('nav-active');
+        navBtn.classList.remove('text-slate-600');
+      }
     } else {
-      el.classList.add('hidden');
-      btn.className = "py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2";
+      if (section) section.classList.add('hidden');
+      if (navBtn) {
+        navBtn.classList.remove('nav-active');
+        navBtn.classList.add('text-slate-600');
+      }
     }
   });
 
-  if (tabId === 'tab-attendance') {
+  // Update Top Bar Header
+  const meta = VIEW_METADATA[viewId] || { title: 'Student Payroll System', subtitle: '' };
+  const titleEl = document.getElementById('current-view-title');
+  const subEl = document.getElementById('current-view-subtitle');
+  if (titleEl) titleEl.textContent = meta.title;
+  if (subEl) subEl.textContent = meta.subtitle;
+
+  // View-specific data fetching
+  if (viewId === 'view-attendance') {
     loadAttendanceForDate();
-  } else if (tabId === 'tab-students') {
+  } else if (viewId === 'view-students') {
     loadStudentsRoster();
+  } else if (viewId === 'view-cohorts') {
+    loadCohortsList();
+  } else if (viewId === 'view-payroll' || viewId === 'view-dashboard') {
+    refreshDashboard();
   }
 }
 
-// Load Periods
+// Load Periods / Cohorts
 async function loadPeriods() {
   try {
     const res = await fetch('/api/periods');
-    const periods = await res.json();
+    periodsList = await res.json();
     const select = document.getElementById('period-select');
+    if (!select) return;
     select.innerHTML = '';
 
-    if (!periods || periods.length === 0) {
-      // Prompt user to seed or seed automatically
+    if (!periodsList || periodsList.length === 0) {
       await seedData();
       return;
     }
 
-    periods.forEach((p, idx) => {
+    periodsList.forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.id;
-      opt.textContent = `${p.name} (${p.total_sessions} sessions)`;
+      opt.textContent = `${p.name} (${p.total_sessions} sess.)`;
       select.appendChild(opt);
     });
 
-    currentPeriodId = periods[0].id;
+    currentPeriodId = periodsList[0].id;
     await refreshDashboard();
   } catch (err) {
     console.error("Failed to load periods:", err);
@@ -68,9 +110,10 @@ async function onPeriodChange() {
   const select = document.getElementById('period-select');
   currentPeriodId = parseInt(select.value);
   await refreshDashboard();
+  loadAttendanceForDate();
 }
 
-// Refresh Dashboard
+// Refresh Dashboard & Payroll Data
 async function refreshDashboard() {
   if (!currentPeriodId) return;
 
@@ -79,39 +122,52 @@ async function refreshDashboard() {
     if (!res.ok) throw new Error('Failed to fetch payroll');
     currentPayrollData = await res.json();
 
-    renderHeaderAndKpis(currentPayrollData);
+    renderDashboardOverview(currentPayrollData);
     renderPayrollTable(currentPayrollData.payroll_records);
   } catch (err) {
     console.error("Failed to refresh dashboard:", err);
   }
 }
 
-// Render Header & KPIs
-function renderHeaderAndKpis(data) {
+// Render Dashboard View
+function renderDashboardOverview(data) {
   const p = data.period;
   const s = data.summary;
 
-  document.getElementById('active-period-title').textContent = `${p.name} (${p.total_sessions} Required Sessions)`;
+  const dashTitle = document.getElementById('dash-cohort-title');
+  if (dashTitle) dashTitle.textContent = `${p.name} (${p.total_sessions} Required Sessions)`;
 
-  document.getElementById('kpi-disbursed').textContent = `$${s.total_disbursed.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-  document.getElementById('kpi-eligible-ratio').textContent = `${s.eligible_students} / ${s.total_students} Eligible`;
-  document.getElementById('kpi-eligible-text').textContent = `${s.eligibility_rate_percent}% qualified for stipend`;
+  const kpiDisbursed = document.getElementById('kpi-disbursed');
+  if (kpiDisbursed) kpiDisbursed.textContent = `$${s.total_disbursed.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
 
-  document.getElementById('kpi-forfeited').textContent = `$${s.total_forfeited.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-  document.getElementById('kpi-avg-attendance').textContent = `${s.average_attendance}%`;
+  const kpiRatio = document.getElementById('kpi-eligible-ratio');
+  if (kpiRatio) kpiRatio.textContent = `${s.eligible_students} / ${s.total_students} Eligible`;
+
+  const kpiText = document.getElementById('kpi-eligible-text');
+  if (kpiText) kpiText.textContent = `${s.eligibility_rate_percent}% qualified for stipend`;
+
+  const kpiForfeited = document.getElementById('kpi-forfeited');
+  if (kpiForfeited) kpiForfeited.textContent = `$${s.total_forfeited.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+  const kpiAvg = document.getElementById('kpi-avg-attendance');
+  if (kpiAvg) kpiAvg.textContent = `${s.average_attendance}%`;
 
   const bar = document.getElementById('kpi-avg-bar');
-  bar.style.width = `${Math.min(100, s.average_attendance)}%`;
-  if (s.average_attendance >= 70) {
-    bar.className = "bg-emerald-500 h-1.5 rounded-full";
-  } else {
-    bar.className = "bg-rose-500 h-1.5 rounded-full";
+  if (bar) {
+    bar.style.width = `${Math.min(100, s.average_attendance)}%`;
+    if (s.average_attendance >= 70) {
+      bar.className = "bg-emerald-500 h-1.5 rounded-full";
+    } else {
+      bar.className = "bg-rose-500 h-1.5 rounded-full";
+    }
   }
 }
 
-// Render Payroll Table
+// Render Payroll Computation Sheet
 function renderPayrollTable(records) {
   const tbody = document.getElementById('payroll-table-body');
+  if (!tbody) return;
+
   if (!records || records.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">No student records found for this period.</td></tr>`;
     return;
@@ -122,7 +178,6 @@ function renderPayrollTable(records) {
     const pct = r.attendance_percentage;
     const threshold = r.threshold_percent;
 
-    // Progress bar and badge styling
     const barColor = isEligible ? 'bg-emerald-500' : 'bg-rose-500';
     const badgeHtml = isEligible
       ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
@@ -231,7 +286,9 @@ function viewPayslip(recordIdx) {
 // Attendance Logger
 async function loadAttendanceForDate() {
   if (!currentPeriodId) return;
-  const date = document.getElementById('attendance-date-picker').value;
+  const dateInput = document.getElementById('attendance-date-picker');
+  if (!dateInput) return;
+  const date = dateInput.value;
   if (!date) return;
 
   try {
@@ -246,6 +303,8 @@ async function loadAttendanceForDate() {
     existingAtt.forEach(a => attMap[a.student_id] = a);
 
     const tbody = document.getElementById('attendance-register-body');
+    if (!tbody) return;
+
     if (studentsList.length === 0) {
       tbody.innerHTML = `<tr><td colspan="3" class="py-6 text-center text-slate-400">No students registered.</td></tr>`;
       return;
@@ -325,22 +384,23 @@ async function saveAttendanceRegister() {
       })
     });
     const result = await res.json();
-    alert('Attendance saved successfully! Recalculating payroll...');
+    alert('Attendance saved successfully! Payroll numbers updated.');
     await refreshDashboard();
   } catch (err) {
     alert('Error saving attendance: ' + err.message);
   }
 }
 
-// Student Roster
+// Student Directory
 async function loadStudentsRoster() {
   try {
     const res = await fetch('/api/students');
     studentsList = await res.json();
     const tbody = document.getElementById('student-roster-body');
+    if (!tbody) return;
 
     if (studentsList.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400">No students found.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400">No students registered.</td></tr>`;
       return;
     }
 
@@ -367,6 +427,37 @@ async function deleteStudent(id) {
   await fetch(`/api/students/${id}`, { method: 'DELETE' });
   await loadStudentsRoster();
   await refreshDashboard();
+}
+
+// Cohorts View
+async function loadCohortsList() {
+  try {
+    const res = await fetch('/api/periods');
+    periodsList = await res.json();
+    const tbody = document.getElementById('cohorts-table-body');
+    if (!tbody) return;
+
+    if (periodsList.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-400">No cohorts defined.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = periodsList.map(p => `
+      <tr class="hover:bg-slate-50 transition-colors">
+        <td class="py-3 px-4 font-semibold text-slate-800">${p.name}</td>
+        <td class="py-3 px-4 text-xs font-mono text-slate-600">${p.start_date} to ${p.end_date}</td>
+        <td class="py-3 px-4 font-mono text-xs font-bold text-slate-800">${p.total_sessions} Sessions</td>
+        <td class="py-3 px-4 font-mono text-xs font-bold text-emerald-700">${p.threshold_percent}% Required</td>
+        <td class="py-3 px-4">
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">
+            Active
+          </span>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    console.error("Failed to load cohorts:", err);
+  }
 }
 
 // Add Student Form
@@ -420,6 +511,7 @@ async function submitAddPeriod(e) {
     closeModal('modal-add-period');
     document.getElementById('form-add-period').reset();
     await loadPeriods();
+    await loadCohortsList();
   } catch (err) {
     alert(err.message);
   }
@@ -432,7 +524,7 @@ async function seedData() {
   try {
     await fetch('/api/seed', { method: 'POST' });
     await loadPeriods();
-    alert('Demo data loaded successfully! Check the 70% attendance cutoff in the payroll table.');
+    alert('Demo data loaded successfully! View the 70% attendance cutoff in the payroll table.');
   } catch (err) {
     alert('Error loading demo data: ' + err.message);
   } finally {
@@ -448,9 +540,11 @@ function exportCSV() {
 
 // Modal Helpers
 function openModal(id) {
-  document.getElementById(id).classList.remove('hidden');
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('hidden');
 }
 
 function closeModal(id) {
-  document.getElementById(id).classList.add('hidden');
+  const el = document.getElementById(id);
+  if (el) el.classList.add('hidden');
 }

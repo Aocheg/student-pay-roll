@@ -26,250 +26,366 @@
       }
     }
   </script>
+  <style>
+    .nav-active {
+      background-color: #f0fdf4;
+      color: #15803d;
+      font-weight: 700;
+      border-right: 4px solid #16a34a;
+    }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans min-h-screen">
+<body class="bg-slate-100 text-slate-900 font-sans min-h-screen flex flex-col md:flex-row">
 
-  <!-- Header -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
-          <i class="fa-solid fa-graduation-cap text-lg"></i>
-        </div>
-        <div>
-          <h1 class="text-lg font-bold text-slate-800 leading-tight">Student Payroll System</h1>
-          <p class="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Strict 70% Attendance Rule Active
-          </p>
-        </div>
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="w-full md:w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 min-h-screen">
+    <!-- Brand -->
+    <div class="p-5 border-b border-slate-200 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+        <i class="fa-solid fa-graduation-cap text-lg"></i>
+      </div>
+      <div>
+        <h1 class="text-sm font-black text-slate-800 tracking-tight leading-none">Student Payroll</h1>
+        <span class="text-[10px] font-semibold text-emerald-600 inline-flex items-center gap-1 mt-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          70% Threshold Rule
+        </span>
+      </div>
+    </div>
+
+    <!-- Active Cohort Selector in Sidebar -->
+    <div class="p-4 border-b border-slate-100 bg-slate-50/60">
+      <label class="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Active Cohort</label>
+      <select id="period-select" onchange="onPeriodChange()" class="w-full bg-white text-slate-800 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+        <!-- Dynamically populated -->
+      </select>
+    </div>
+
+    <!-- Navigation Subheadings / Views -->
+    <nav class="flex-1 py-4 space-y-1">
+      <div class="px-4 py-1 text-[10px] font-bold uppercase text-slate-400 tracking-wider">Navigation Views</div>
+
+      <!-- 1. Dashboard Overview -->
+      <button onclick="switchView('view-dashboard')" id="nav-btn-dashboard" class="w-full text-left px-5 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-3 transition-colors nav-active">
+        <i class="fa-solid fa-chart-pie w-4 text-center"></i>
+        <span>Dashboard Overview</span>
+      </button>
+
+      <!-- 2. Payroll Calculation Sheet -->
+      <button onclick="switchView('view-payroll')" id="nav-btn-payroll" class="w-full text-left px-5 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-3 transition-colors">
+        <i class="fa-solid fa-file-invoice-dollar w-4 text-center"></i>
+        <span>Payroll & Payouts</span>
+      </button>
+
+      <!-- 3. Attendance Logger -->
+      <button onclick="switchView('view-attendance')" id="nav-btn-attendance" class="w-full text-left px-5 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-3 transition-colors">
+        <i class="fa-solid fa-calendar-check w-4 text-center"></i>
+        <span>Log Daily Attendance</span>
+      </button>
+
+      <!-- 4. Student Directory -->
+      <button onclick="switchView('view-students')" id="nav-btn-students" class="w-full text-left px-5 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-3 transition-colors">
+        <i class="fa-solid fa-users w-4 text-center"></i>
+        <span>Student Directory</span>
+      </button>
+
+      <!-- 5. Cohorts & Periods -->
+      <button onclick="switchView('view-cohorts')" id="nav-btn-cohorts" class="w-full text-left px-5 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-3 transition-colors">
+        <i class="fa-solid fa-layer-group w-4 text-center"></i>
+        <span>Cohorts & Periods</span>
+      </button>
+    </nav>
+
+    <!-- Bottom Quick Actions -->
+    <div class="p-4 border-t border-slate-200 bg-white space-y-2">
+      <button onclick="seedData()" id="btn-seed" class="w-full py-2 px-3 text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg transition-all flex items-center justify-center gap-2">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> Load Demo Data
+      </button>
+      <button onclick="exportCSV()" class="w-full py-2 px-3 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg transition-all flex items-center justify-center gap-2">
+        <i class="fa-solid fa-file-csv text-emerald-600"></i> Export CSV Report
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN VIEW CONTENT AREA -->
+  <div class="flex-1 flex flex-col min-w-0">
+
+    <!-- Top Bar -->
+    <header class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-20 shadow-xs">
+      <div>
+        <h2 class="text-base font-bold text-slate-800" id="current-view-title">Dashboard Overview</h2>
+        <p class="text-xs text-slate-400" id="current-view-subtitle">High-level attendance analytics and payroll disburser stats</p>
       </div>
 
       <div class="flex items-center gap-2">
-        <button onclick="seedData()" id="btn-seed" class="px-3.5 py-1.5 text-xs font-medium bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg transition-all flex items-center gap-1.5 shadow-sm">
-          <i class="fa-solid fa-wand-magic-sparkles"></i> Load Demo Data
-        </button>
-        <button onclick="exportCSV()" id="btn-export" class="px-3.5 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg transition-all flex items-center gap-1.5 shadow-sm">
-          <i class="fa-solid fa-file-csv text-emerald-600"></i> Export CSV
-        </button>
-        <button onclick="openModal('modal-add-student')" class="px-3.5 py-1.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all flex items-center gap-1.5 shadow-sm shadow-emerald-600/30">
-          <i class="fa-solid fa-user-plus"></i> Add Student
-        </button>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+          <i class="fa-solid fa-shield-halved text-emerald-600"></i> 70% Cutoff Required
+        </span>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- Main Container -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <!-- VIEWS CONTAINER -->
+    <main class="flex-1 p-6 overflow-y-auto">
 
-    <!-- Cohort / Period Selector & Rule Banner -->
-    <div class="bg-gradient-to-r from-emerald-900 to-teal-900 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-      <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-2 mb-1">
-            <span class="bg-emerald-500/30 text-emerald-300 border border-emerald-400/30 text-xs px-2.5 py-0.5 rounded-full font-mono uppercase tracking-wider font-semibold">Policy Enforced</span>
-            <span class="text-xs text-slate-300">Min. Attendance Threshold: <strong>70.0%</strong></span>
-          </div>
-          <h2 class="text-2xl font-bold tracking-tight" id="active-period-title">Loading Pay Period...</h2>
-          <p class="text-sm text-emerald-100/80 mt-1 max-w-xl">
-            Students are paid strictly per attended session (<span class="font-semibold text-white">Daily Rate × Days Present</span>), provided their attendance is at or above <span class="underline decoration-emerald-400 decoration-2 font-bold text-white">70%</span>. Anyone below 70% receives <span class="bg-red-500/30 text-red-200 px-1.5 py-0.5 rounded font-mono font-bold">$0.00</span>.
-          </p>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <div class="bg-white/10 backdrop-blur-md rounded-xl p-2.5 border border-white/20">
-            <label class="block text-[11px] uppercase font-semibold text-emerald-200 tracking-wider mb-1">Select Cohort Period</label>
-            <select id="period-select" onchange="onPeriodChange()" class="bg-slate-900/90 text-white border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
-              <!-- Dynamically populated -->
-            </select>
-          </div>
-          <button onclick="openModal('modal-add-period')" class="bg-white/20 hover:bg-white/30 text-white p-2.5 rounded-xl border border-white/30 text-sm font-medium transition-all" title="New Pay Period">
-            <i class="fa-solid fa-plus"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- KPI Metric Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <!-- Total Payroll Disbursed -->
-      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold uppercase text-slate-500 tracking-wider">Payroll Disbursed</span>
-          <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-bold"><i class="fa-solid fa-money-bill-wave"></i></span>
-        </div>
-        <div class="mt-3">
-          <div class="text-2xl font-black text-slate-900" id="kpi-disbursed">$0.00</div>
-          <p class="text-xs text-slate-500 mt-1">Paid strictly to eligible students (≥ 70%)</p>
-        </div>
-      </div>
-
-      <!-- Eligibility Breakdown -->
-      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold uppercase text-slate-500 tracking-wider">Eligibility Rate</span>
-          <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm font-bold"><i class="fa-solid fa-user-check"></i></span>
-        </div>
-        <div class="mt-3">
-          <div class="text-2xl font-black text-slate-900" id="kpi-eligible-ratio">0 / 0</div>
-          <p class="text-xs text-slate-500 mt-1" id="kpi-eligible-text">0% qualifying rate</p>
-        </div>
-      </div>
-
-      <!-- Forfeited Pay -->
-      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold uppercase text-slate-500 tracking-wider">Forfeited (< 70%)</span>
-          <span class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-sm font-bold"><i class="fa-solid fa-ban"></i></span>
-        </div>
-        <div class="mt-3">
-          <div class="text-2xl font-black text-rose-600" id="kpi-forfeited">$0.00</div>
-          <p class="text-xs text-slate-500 mt-1">Withheld due to substandard attendance</p>
-        </div>
-      </div>
-
-      <!-- Average Attendance -->
-      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold uppercase text-slate-500 tracking-wider">Average Cohort Attendance</span>
-          <span class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-sm font-bold"><i class="fa-solid fa-chart-line"></i></span>
-        </div>
-        <div class="mt-3">
-          <div class="text-2xl font-black text-slate-900" id="kpi-avg-attendance">0%</div>
-          <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
-            <div id="kpi-avg-bar" class="bg-emerald-500 h-1.5 rounded-full" style="width: 0%"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Navigation Tabs -->
-    <div class="border-b border-slate-200 flex items-center space-x-6 text-sm font-medium">
-      <button onclick="switchTab('tab-payroll')" id="tab-btn-payroll" class="py-3 border-b-2 border-emerald-600 text-emerald-700 font-semibold flex items-center gap-2">
-        <i class="fa-solid fa-file-invoice-dollar"></i> Payroll & Eligibility Table
-      </button>
-      <button onclick="switchTab('tab-attendance')" id="tab-btn-attendance" class="py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
-        <i class="fa-solid fa-clipboard-user"></i> Log Daily Attendance
-      </button>
-      <button onclick="switchTab('tab-students')" id="tab-btn-students" class="py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
-        <i class="fa-solid fa-users"></i> Student Roster & Rates
-      </button>
-    </div>
-
-    <!-- TAB 1: PAYROLL & ELIGIBILITY TABLE -->
-    <div id="tab-payroll" class="space-y-4">
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
-          <div>
-            <h3 class="font-bold text-slate-800">Payroll Calculation Sheet</h3>
-            <p class="text-xs text-slate-500">Students with attendance ≥ 70% are approved for payout based on their attended sessions.</p>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <i class="fa-solid fa-circle-check"></i> ≥ 70% Eligible
-            </span>
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-              <i class="fa-solid fa-circle-xmark"></i> < 70% $0.00
-            </span>
+      <!-- ========================================== -->
+      <!-- VIEW 1: DASHBOARD OVERVIEW -->
+      <!-- ========================================== -->
+      <section id="view-dashboard" class="space-y-6">
+        <!-- Policy Banner -->
+        <div class="bg-gradient-to-r from-emerald-900 to-teal-900 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+          <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="bg-emerald-500/30 text-emerald-300 border border-emerald-400/30 text-xs px-2.5 py-0.5 rounded-full font-mono uppercase tracking-wider font-semibold">Attendance-Linked Policy</span>
+                <span class="text-xs text-slate-300">Cutoff: <strong>70.0% Minimum</strong></span>
+              </div>
+              <h2 class="text-2xl font-bold tracking-tight" id="dash-cohort-title">Loading Cohort...</h2>
+              <p class="text-sm text-emerald-100/80 mt-1 max-w-2xl">
+                Students receive stipend strictly based on verified attendance (<span class="font-semibold text-white">Daily Rate × Days Present</span>), provided attendance is at or above <span class="underline decoration-emerald-400 decoration-2 font-bold text-white">70%</span>. Anyone below 70% receives <span class="bg-red-500/30 text-red-200 px-1.5 py-0.5 rounded font-mono font-bold">$0.00</span>.
+              </p>
+            </div>
+            <div>
+              <button onclick="switchView('view-payroll')" class="px-4 py-2 bg-white text-slate-900 font-bold rounded-xl text-xs hover:bg-emerald-50 transition-all flex items-center gap-2 shadow">
+                <span>View Full Payroll Sheet</span>
+                <i class="fa-solid fa-arrow-right text-emerald-600"></i>
+              </button>
+            </div>
           </div>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-slate-600">
-            <thead class="bg-slate-100/75 text-[11px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
-              <tr>
-                <th class="py-3.5 px-4">Student</th>
-                <th class="py-3.5 px-4">Sessions Attended</th>
-                <th class="py-3.5 px-4">Attendance Rate</th>
-                <th class="py-3.5 px-4">Eligibility Status</th>
-                <th class="py-3.5 px-4">Daily Rate</th>
-                <th class="py-3.5 px-4 text-right">Gross Pay</th>
-                <th class="py-3.5 px-4 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody id="payroll-table-body" class="divide-y divide-slate-100">
-              <tr>
-                <td colspan="7" class="py-8 text-center text-slate-400">Loading payroll calculations...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 2: DAILY ATTENDANCE LOGGER -->
-    <div id="tab-attendance" class="hidden space-y-4">
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-4">
-          <div>
-            <h3 class="font-bold text-slate-800 text-base">Daily Attendance Register</h3>
-            <p class="text-xs text-slate-500">Pick a session date to quickly mark Present, Absent, or Excused for all students.</p>
+        <!-- KPI Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Total Disbursed -->
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase text-slate-500 tracking-wider">Payroll Disbursed</span>
+              <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-bold"><i class="fa-solid fa-money-bill-wave"></i></span>
+            </div>
+            <div class="mt-3">
+              <div class="text-2xl font-black text-slate-900" id="kpi-disbursed">$0.00</div>
+              <p class="text-xs text-slate-500 mt-1">Paid strictly to eligible students (≥ 70%)</p>
+            </div>
           </div>
-          <div class="flex items-center gap-3">
-            <label class="text-xs font-semibold text-slate-600">Session Date:</label>
-            <input type="date" id="attendance-date-picker" onchange="loadAttendanceForDate()" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-            <button onclick="markAllPresent()" class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-300">
-              Mark All Present
+
+          <!-- Eligibility Ratio -->
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase text-slate-500 tracking-wider">Eligibility Rate</span>
+              <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm font-bold"><i class="fa-solid fa-user-check"></i></span>
+            </div>
+            <div class="mt-3">
+              <div class="text-2xl font-black text-slate-900" id="kpi-eligible-ratio">0 / 0</div>
+              <p class="text-xs text-slate-500 mt-1" id="kpi-eligible-text">0% qualifying rate</p>
+            </div>
+          </div>
+
+          <!-- Forfeited Amount -->
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase text-slate-500 tracking-wider">Forfeited (< 70%)</span>
+              <span class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-sm font-bold"><i class="fa-solid fa-ban"></i></span>
+            </div>
+            <div class="mt-3">
+              <div class="text-2xl font-black text-rose-600" id="kpi-forfeited">$0.00</div>
+              <p class="text-xs text-slate-500 mt-1">Withheld due to substandard attendance</p>
+            </div>
+          </div>
+
+          <!-- Average Attendance -->
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase text-slate-500 tracking-wider">Avg Cohort Attendance</span>
+              <span class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-sm font-bold"><i class="fa-solid fa-chart-line"></i></span>
+            </div>
+            <div class="mt-3">
+              <div class="text-2xl font-black text-slate-900" id="kpi-avg-attendance">0%</div>
+              <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="kpi-avg-bar" class="bg-emerald-500 h-1.5 rounded-full" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Jump Panels -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div onclick="switchView('view-payroll')" class="bg-white hover:border-emerald-400 border border-slate-200 rounded-xl p-5 shadow-sm cursor-pointer transition-all hover:shadow group">
+            <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg mb-3 group-hover:scale-110 transition-transform">
+              <i class="fa-solid fa-file-invoice-dollar"></i>
+            </div>
+            <h4 class="font-bold text-slate-800 text-sm">Payroll Calculation Sheet</h4>
+            <p class="text-xs text-slate-500 mt-1">Inspect individual payouts, attendance percentages, and generate payslips.</p>
+          </div>
+
+          <div onclick="switchView('view-attendance')" class="bg-white hover:border-emerald-400 border border-slate-200 rounded-xl p-5 shadow-sm cursor-pointer transition-all hover:shadow group">
+            <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-lg mb-3 group-hover:scale-110 transition-transform">
+              <i class="fa-solid fa-calendar-check"></i>
+            </div>
+            <h4 class="font-bold text-slate-800 text-sm">Daily Attendance Register</h4>
+            <p class="text-xs text-slate-500 mt-1">Select a date to mark Present, Absent, or Excused for the cohort.</p>
+          </div>
+
+          <div onclick="switchView('view-students')" class="bg-white hover:border-emerald-400 border border-slate-200 rounded-xl p-5 shadow-sm cursor-pointer transition-all hover:shadow group">
+            <div class="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-lg mb-3 group-hover:scale-110 transition-transform">
+              <i class="fa-solid fa-users"></i>
+            </div>
+            <h4 class="font-bold text-slate-800 text-sm">Student Directory & Rates</h4>
+            <p class="text-xs text-slate-500 mt-1">Enroll new students and manage assigned daily stipend rates.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- VIEW 2: PAYROLL CALCULATION SHEET -->
+      <!-- ========================================== -->
+      <section id="view-payroll" class="hidden space-y-4">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+            <div>
+              <h3 class="font-bold text-slate-800 text-base">Student Payroll Computation Sheet</h3>
+              <p class="text-xs text-slate-500">Students with attendance ≥ 70% receive Days Present × Daily Rate. Attendance below 70% receives $0.00.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="exportCSV()" class="px-3 py-1.5 text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-file-csv text-emerald-600"></i> Download CSV
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+              <thead class="bg-slate-100/75 text-[11px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
+                <tr>
+                  <th class="py-3.5 px-4">Student</th>
+                  <th class="py-3.5 px-4">Sessions Attended</th>
+                  <th class="py-3.5 px-4">Attendance Rate</th>
+                  <th class="py-3.5 px-4">Eligibility Status</th>
+                  <th class="py-3.5 px-4">Daily Rate</th>
+                  <th class="py-3.5 px-4 text-right">Gross Pay</th>
+                  <th class="py-3.5 px-4 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody id="payroll-table-body" class="divide-y divide-slate-100">
+                <tr>
+                  <td colspan="7" class="py-8 text-center text-slate-400">Loading payroll calculations...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- VIEW 3: DAILY ATTENDANCE LOGGER -->
+      <!-- ========================================== -->
+      <section id="view-attendance" class="hidden space-y-4">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-4">
+            <div>
+              <h3 class="font-bold text-slate-800 text-base">Daily Attendance Register</h3>
+              <p class="text-xs text-slate-500">Pick a session date to quickly mark Present, Absent, or Excused for all students.</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="text-xs font-semibold text-slate-600">Session Date:</label>
+              <input type="date" id="attendance-date-picker" onchange="loadAttendanceForDate()" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+              <button onclick="markAllPresent()" class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-300">
+                Mark All Present
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+              <thead class="bg-slate-50 text-[11px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-4">Student</th>
+                  <th class="py-3 px-4 text-center">Status</th>
+                  <th class="py-3 px-4">Notes / Excuses</th>
+                </tr>
+              </thead>
+              <tbody id="attendance-register-body" class="divide-y divide-slate-100">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="mt-5 flex justify-end">
+            <button onclick="saveAttendanceRegister()" class="px-5 py-2 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm shadow-emerald-600/30 flex items-center gap-2">
+              <i class="fa-solid fa-floppy-disk"></i> Save Attendance & Recalculate
             </button>
           </div>
         </div>
+      </section>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-slate-600">
-            <thead class="bg-slate-50 text-[11px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
-              <tr>
-                <th class="py-3 px-4">Student</th>
-                <th class="py-3 px-4 text-center">Status</th>
-                <th class="py-3 px-4">Notes / Excuses</th>
-              </tr>
-            </thead>
-            <tbody id="attendance-register-body" class="divide-y divide-slate-100">
-              <!-- Dynamically populated -->
-            </tbody>
-          </table>
-        </div>
-
-        <div class="mt-5 flex justify-end">
-          <button onclick="saveAttendanceRegister()" class="px-5 py-2 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm shadow-emerald-600/30 flex items-center gap-2">
-            <i class="fa-solid fa-floppy-disk"></i> Save Attendance & Recalculate
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 3: STUDENT ROSTER & RATES -->
-    <div id="tab-students" class="hidden space-y-4">
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-          <div>
-            <h3 class="font-bold text-slate-800">Student Directory</h3>
-            <p class="text-xs text-slate-500">Manage enrolled students and their assigned daily stipend rates.</p>
+      <!-- ========================================== -->
+      <!-- VIEW 4: STUDENT DIRECTORY & RATES -->
+      <!-- ========================================== -->
+      <section id="view-students" class="hidden space-y-4">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+            <div>
+              <h3 class="font-bold text-slate-800 text-base">Enrolled Student Directory</h3>
+              <p class="text-xs text-slate-500">Manage enrolled students and their assigned daily stipend rates.</p>
+            </div>
+            <button onclick="openModal('modal-add-student')" class="px-3.5 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1.5 shadow-sm shadow-emerald-600/20">
+              <i class="fa-solid fa-user-plus"></i> Add New Student
+            </button>
           </div>
-          <button onclick="openModal('modal-add-student')" class="px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1.5">
-            <i class="fa-solid fa-plus"></i> Add New Student
-          </button>
-        </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-slate-600">
-            <thead class="bg-slate-100/75 text-[11px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
-              <tr>
-                <th class="py-3 px-4">ID</th>
-                <th class="py-3 px-4">Name</th>
-                <th class="py-3 px-4">Email</th>
-                <th class="py-3 px-4">Daily Stipend Rate</th>
-                <th class="py-3 px-4 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody id="student-roster-body" class="divide-y divide-slate-100">
-              <!-- Dynamically populated -->
-            </tbody>
-          </table>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+              <thead class="bg-slate-100/75 text-[11px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-4">Student ID</th>
+                  <th class="py-3 px-4">Name</th>
+                  <th class="py-3 px-4">Email</th>
+                  <th class="py-3 px-4">Daily Stipend Rate</th>
+                  <th class="py-3 px-4 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody id="student-roster-body" class="divide-y divide-slate-100">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-    </div>
+      </section>
 
-  </main>
+      <!-- ========================================== -->
+      <!-- VIEW 5: COHORTS & PERIODS -->
+      <!-- ========================================== -->
+      <section id="view-cohorts" class="hidden space-y-4">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+            <div>
+              <h3 class="font-bold text-slate-800 text-base">Pay Periods & Academic Cohorts</h3>
+              <p class="text-xs text-slate-500">Define academic cycles, expected class sessions, and minimum attendance thresholds.</p>
+            </div>
+            <button onclick="openModal('modal-add-period')" class="px-3.5 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-1.5 shadow-sm shadow-emerald-600/20">
+              <i class="fa-solid fa-plus"></i> Create New Cohort
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+              <thead class="bg-slate-100/75 text-[11px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-4">Cohort Name</th>
+                  <th class="py-3 px-4">Date Range</th>
+                  <th class="py-3 px-4">Total Sessions</th>
+                  <th class="py-3 px-4">Threshold</th>
+                  <th class="py-3 px-4">Status</th>
+                </tr>
+              </thead>
+              <tbody id="cohorts-table-body" class="divide-y divide-slate-100">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
 
   <!-- MODAL: Payslip Detail / Audit View -->
   <div id="modal-payslip" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
