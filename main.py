@@ -45,6 +45,12 @@ class BatchAttendanceEntry(BaseModel):
     date: str
     entries: List[dict] # [{"student_id": 1, "status": "present", "notes": ""}, ...]
 
+class StudentAttendanceUpdate(BaseModel):
+    student_id: int
+    period_id: int
+    days_present: Optional[int] = None
+    sessions: Optional[List[dict]] = None
+
 
 # --- API Routes: Students ---
 @app.get("/api/students")
@@ -145,6 +151,113 @@ def save_batch_attendance(batch: BatchAttendanceEntry):
     conn.commit()
     conn.close()
     return {"message": f"Successfully logged attendance for {saved} students."}
+
+@app.get("/api/attendance/student/{student_id}")
+def get_student_attendance(student_id: int, period_id: int):
+    conn = get_db()
+    student = conn.execute("SELECT * FROM students WHERE id = ?", (student_id,)).fetchone()
+    if not student:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    period = conn.execute("SELECT * FROM periods WHERE id = ?", (period_id,)).fetchone()
+    if not period:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Period not found")
+        
+    student_dict = dict(student)
+    period_dict = dict(period)
+
+    att_rows = conn.execute(
+        "SELECT * FROM attendance WHERE student_id = ? AND period_id = ? ORDER BY date ASC",
+        (student_id, period_id)
+    ).fetchall()
+    att_list = [dict(a) for a in att_rows]
+    conn.close()
+
+    calc = calculate_student_payroll(student_dict, period_dict, att_list)
+    return {
+        "student": student_dict,
+        "period": period_dict,
+        "calculation": calc,
+        "sessions": att_list
+    }
+
+@app.post("/api/attendance/student-update")
+def update_student_attendance(update_data: StudentAttendanceUpdate):
+    conn = get_db()
+    cursor = conn.cursor()
+
+    student = conn.execute("SELECT * FROM students WHERE id = ?", (update_data.student_id,)).fetchone()
+    if not student:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Student not found")
+    period = conn.execute("SELECT * FROM periods WHERE id = ?", (update_data.period_id,)).fetchone()
+    if not period:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Period not found")
+    
+    student_dict = dict(student)
+    period_dict = dict(period)
+    total_sessions = period_dict.get("total_sessions", 20)
+
+    if update_data.days_present is not None:
+        target_present = max(0, min(total_sessions, update_data.days_present))
+        
+        # Get existing dates or generate standard dates 1 to total_sessions
+        existing = conn.execute(
+            "SELECT date FROM attendance WHERE student_id = ? AND period_id = ? ORDER BY date ASC",
+            (update_data.student_id, update_data.period_id)
+        ).fetchall()
+        
+        dates = [r["date"] for r in existing]
+        if len(dates) < total_sessions:
+            start_date = period_dict.get("start_date", "2026-10-01")
+            prefix = start_date[:8]
+            dates = [f"{prefix}{d:02d}" for d in range(1, total_sessions + 1)]
+        
+        # Mark first target_present as present, rest as absent
+        for idx, d in enumerate(dates):
+            st = "present" if idx < target_present else "absent"
+            cursor.execute("""
+                INSERT INTO attendance (student_id, period_id, date, status, notes)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(student_id, period_id, date) DO UPDATE SET
+                    status = excluded.status
+            """, (update_data.student_id, update_data.period_id, d, st, "Updated via Attendance Manager"))
+
+    elif update_data.sessions is not None:
+        for item in update_data.sessions:
+            d = item.get("date")
+            st = item.get("status", "absent")
+            notes = item.get("notes", "Updated session")
+            cursor.execute("""
+                INSERT INTO attendance (student_id, period_id, date, status, notes)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(student_id, period_id, date) DO UPDATE SET
+                    status = excluded.status,
+                    notes = excluded.notes
+            """, (update_data.student_id, update_data.period_id, d, st, notes))
+
+    conn.commit()
+
+    # Requery and calculate
+    att_rows = conn.execute(
+        "SELECT * FROM attendance WHERE student_id = ? AND period_id = ? ORDER BY date ASC",
+        (update_data.student_id, update_data.period_id)
+    ).fetchall()
+    att_list = [dict(a) for a in att_rows]
+    conn.close()
+
+    calc = calculate_student_payroll(student_dict, period_dict, att_list)
+    return {
+        "message": "Attendance updated successfully!",
+        "calculation": calc,
+        "is_eligible": calc["is_eligible"],
+        "attendance_percentage": calc["attendance_percentage"],
+        "gross_pay": calc["gross_pay"],
+        "payout_status": calc["payout_status"]
+    }
 
 
 # --- API Routes: Payroll Calculation ---

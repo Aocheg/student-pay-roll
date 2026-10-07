@@ -200,6 +200,11 @@ function renderDashboardOverview(data) {
           <td class="py-2.5 px-4 text-right font-bold text-xs ${isElig ? 'text-slate-900' : 'text-rose-500'}">
             ${isElig ? `${r.currency}${r.gross_pay.toFixed(2)}` : '$0.00'}
           </td>
+          <td class="py-2.5 px-4 text-center">
+            <button onclick="openAttendanceUpdater(${r.student_id})" class="px-2.5 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-all shadow-2xs flex items-center gap-1 mx-auto cursor-pointer" title="Adjust Attendance & Test 70% Cutoff">
+              <i class="fa-solid fa-pen-to-square text-emerald-600"></i> Update
+            </button>
+          </td>
         </tr>
       `;
     }).join('');
@@ -316,9 +321,14 @@ function renderPayrollTable() {
           ${payDisplay}
         </td>
         <td class="py-3.5 px-4 text-center">
-          <button onclick="viewPayslipByCode('${r.student_code}')" class="px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl transition-all shadow-2xs" title="View Detailed Payslip">
-            <i class="fa-solid fa-receipt text-slate-500 mr-1"></i> Slip
-          </button>
+          <div class="flex items-center justify-center gap-1.5">
+            <button onclick="openAttendanceUpdater(${r.student_id})" class="px-2.5 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all shadow-2xs flex items-center gap-1 cursor-pointer" title="Adjust Attendance & Check 70% Cutoff">
+              <i class="fa-solid fa-pen-to-square text-emerald-600"></i> Update
+            </button>
+            <button onclick="viewPayslipByCode('${r.student_code}')" class="px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl transition-all shadow-2xs flex items-center gap-1 cursor-pointer" title="View Detailed Payslip">
+              <i class="fa-solid fa-receipt text-slate-500"></i> Slip
+            </button>
+          </div>
         </td>
       </tr>
     `;
@@ -631,6 +641,182 @@ async function seedData() {
 function exportCSV() {
   if (!currentPeriodId) return;
   window.location.href = `/api/payroll/${currentPeriodId}/export-csv`;
+}
+
+// ==========================================
+// LIVE ATTENDANCE ADJUSTER & 70% CUTOFF TESTER
+// ==========================================
+let activeStudentUpdate = null;
+
+async function openAttendanceUpdater(studentId) {
+  if (!currentPeriodId) return;
+  try {
+    const res = await fetch(`/api/attendance/student/${studentId}?period_id=${currentPeriodId}`);
+    if (!res.ok) throw new Error("Could not load student attendance");
+    const data = await res.json();
+    activeStudentUpdate = data;
+
+    document.getElementById('upd-stu-name').textContent = data.student.name;
+    document.getElementById('upd-stu-details').textContent = `${data.student.student_id} • ${data.student.currency}${data.student.daily_rate.toFixed(2)}/session • ${data.student.email}`;
+    document.getElementById('upd-sessions-quota').textContent = `Out of ${data.period.total_sessions} Required Sessions`;
+    
+    const input = document.getElementById('upd-present-input');
+    input.max = data.period.total_sessions;
+    input.value = data.calculation.days_present;
+
+    const thresholdNeeded = Math.ceil((data.period.threshold_percent / 100) * data.period.total_sessions);
+    document.getElementById('upd-threshold-days').textContent = thresholdNeeded;
+
+    refreshLiveAttendancePreview();
+    openModal('modal-update-attendance');
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function adjustPresentStepper(delta) {
+  const input = document.getElementById('upd-present-input');
+  if (!input || !activeStudentUpdate) return;
+  let val = parseInt(input.value) || 0;
+  const maxSessions = activeStudentUpdate.period.total_sessions;
+  val = Math.max(0, Math.min(maxSessions, val + delta));
+  input.value = val;
+  refreshLiveAttendancePreview();
+}
+
+function onPresentInputChange() {
+  const input = document.getElementById('upd-present-input');
+  if (!input || !activeStudentUpdate) return;
+  const maxSessions = activeStudentUpdate.period.total_sessions;
+  let val = parseInt(input.value) || 0;
+  if (val > maxSessions) val = maxSessions;
+  if (val < 0) val = 0;
+  input.value = val;
+  refreshLiveAttendancePreview();
+}
+
+function quickJumpToThreshold() {
+  if (!activeStudentUpdate) return;
+  const total = activeStudentUpdate.period.total_sessions;
+  const thresholdNeeded = Math.ceil((activeStudentUpdate.period.threshold_percent / 100) * total);
+  const input = document.getElementById('upd-present-input');
+  if (input) {
+    input.value = thresholdNeeded;
+    refreshLiveAttendancePreview();
+  }
+}
+
+function refreshLiveAttendancePreview() {
+  if (!activeStudentUpdate) return;
+  const input = document.getElementById('upd-present-input');
+  const presentDays = parseInt(input.value) || 0;
+  const totalSessions = activeStudentUpdate.period.total_sessions;
+  const thresholdPct = activeStudentUpdate.period.threshold_percent;
+  const dailyRate = activeStudentUpdate.student.daily_rate;
+  const currency = activeStudentUpdate.student.currency;
+
+  const pct = totalSessions > 0 ? Number(((presentDays / totalSessions) * 100).toFixed(1)) : 0;
+  const isEligible = pct >= thresholdPct;
+  const potentialPay = Number((presentDays * dailyRate).toFixed(2));
+  const finalPayout = isEligible ? potentialPay : 0.0;
+
+  document.getElementById('upd-live-pct').textContent = `${pct}% (${presentDays}/${totalSessions} Days)`;
+  document.getElementById('upd-live-rate').textContent = `${currency}${dailyRate.toFixed(2)} / session`;
+
+  const payoutEl = document.getElementById('upd-live-payout');
+  const cardEl = document.getElementById('upd-status-card');
+
+  if (isEligible) {
+    payoutEl.textContent = `${currency}${finalPayout.toFixed(2)}`;
+    payoutEl.className = "text-emerald-700 font-mono text-base font-black";
+
+    cardEl.className = "rounded-2xl p-4 border bg-emerald-50 border-emerald-200 text-emerald-900";
+    cardEl.innerHTML = `
+      <div class="flex items-start gap-3">
+        <div class="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-sm font-bold shrink-0 mt-0.5 shadow-2xs">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div>
+          <div class="font-extrabold text-sm text-emerald-800 flex items-center gap-2">
+            <span>🎉 ELIGIBLE FOR DISBURSAL</span>
+            <span class="text-xs font-mono font-bold bg-emerald-200/70 text-emerald-900 px-2 py-0.5 rounded-full">${pct}% ≥ ${thresholdPct}%</span>
+          </div>
+          <p class="text-xs text-emerald-700 mt-1">
+            Minimum 70% attendance reached! Payout is unlocked for <strong>${presentDays} present sessions</strong>.
+          </p>
+          <div class="mt-2 text-xs font-mono font-bold text-emerald-800">
+            Approved Payout: ${presentDays} days × ${currency}${dailyRate.toFixed(2)} = <span class="underline">${currency}${finalPayout.toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    payoutEl.textContent = `${currency}0.00`;
+    payoutEl.className = "text-rose-600 font-mono text-base font-black";
+
+    const thresholdDays = Math.ceil((thresholdPct / 100) * totalSessions);
+    const shortBy = thresholdDays - presentDays;
+
+    cardEl.className = "rounded-2xl p-4 border bg-rose-50 border-rose-200 text-rose-900";
+    cardEl.innerHTML = `
+      <div class="flex items-start gap-3">
+        <div class="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center text-sm font-bold shrink-0 mt-0.5 shadow-2xs">
+          <i class="fa-solid fa-ban"></i>
+        </div>
+        <div>
+          <div class="font-extrabold text-sm text-rose-800 flex items-center gap-2">
+            <span>⚠️ INELIGIBLE (Below 70% Cutoff)</span>
+            <span class="text-xs font-mono font-bold bg-rose-200/70 text-rose-900 px-2 py-0.5 rounded-full">${pct}% &lt; ${thresholdPct}%</span>
+          </div>
+          <p class="text-xs text-rose-700 mt-1">
+            Attendance is below the mandatory 70% cutoff. Payout remains <strong>$0.00</strong>.
+          </p>
+          <div class="mt-2 text-xs font-bold text-rose-800">
+            👉 Needs <strong>${shortBy} more present session(s)</strong> (at least ${thresholdDays} days) to become eligible!
+          </div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+async function saveStudentAttendanceUpdate() {
+  if (!activeStudentUpdate) return;
+  const input = document.getElementById('upd-present-input');
+  const presentDays = parseInt(input.value) || 0;
+  const btn = document.getElementById('btn-save-upd');
+
+  if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Saving...`;
+
+  try {
+    const res = await fetch('/api/attendance/student-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student_id: activeStudentUpdate.student.id,
+        period_id: activeStudentUpdate.period.id,
+        days_present: presentDays
+      })
+    });
+
+    if (!res.ok) throw new Error("Failed to save attendance update");
+    const result = await res.json();
+
+    closeModal('modal-update-attendance');
+
+    const msg = result.is_eligible 
+      ? `🎉 SUCCESS! ${activeStudentUpdate.student.name} reached ${result.attendance_percentage}% attendance and is now ELIGIBLE for payment ($${result.gross_pay.toFixed(2)})!`
+      : `Updated attendance to ${result.attendance_percentage}%. Still below 70% cutoff ($0.00).`;
+
+    alert(msg);
+
+    await refreshDashboard();
+    await loadAttendanceForDate();
+  } catch (err) {
+    alert("Error: " + err.message);
+  } finally {
+    if (btn) btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Save Attendance & Update Payout</span>`;
+  }
 }
 
 // Modal Helpers
