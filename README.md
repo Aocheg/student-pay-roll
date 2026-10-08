@@ -58,8 +58,25 @@ Open your browser at:
    - Add new students with custom daily stipend rates and currency symbols.
    - Create new pay periods/cohorts with custom dates and session counts.
 
-6. **Export & Reporting**:
-   - Download the complete payroll sheet as a standard CSV file ready for finance/disbursal.
+6. **Official PDF Payslip Generation**:
+   - Single-click download of formal, branded PDF payslips powered by ReportLab.
+   - Includes student details, banking coordinates, session-by-session attendance audit, threshold compliance stamp, and official policy disclaimers.
+
+7. **Attendance Import via CSV**:
+   - Bulk upload attendance records from spreadsheet files (`.csv`).
+   - Downloadable standardized sample CSV template for administrative ease.
+
+8. **Digital QR Code Badges & Check-in Scanner**:
+   - Generate instant cryptographic student QR ID passes.
+   - Built-in camera and barcode scanner console for instant classroom attendance check-in.
+
+9. **Student Banking & Payout Tracking**:
+   - Store bank name, account number, and beneficiary account name.
+   - Manage payout status lifecycle (`Pending`, `Processing`, `Disbursed`) with custom transaction reference numbers.
+
+10. **Interactive Visual Charts (Chart.js)**:
+    - Visual bar chart displaying every student's attendance vs. the rigid 70% cutoff marker.
+    - Donut chart displaying the cohort's passing vs. failing eligibility distribution.
 
 ---
 

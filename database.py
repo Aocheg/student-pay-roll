@@ -23,9 +23,21 @@ def init_db():
         email TEXT NOT NULL,
         daily_rate REAL NOT NULL DEFAULT 50.0,
         currency TEXT NOT NULL DEFAULT '$',
+        bank_name TEXT DEFAULT '',
+        account_number TEXT DEFAULT '',
+        account_name TEXT DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
+
+    # Column migrations for existing tables
+    existing_cols = [c[1] for c in cursor.execute("PRAGMA table_info(students)").fetchall()]
+    if "bank_name" not in existing_cols:
+        cursor.execute("ALTER TABLE students ADD COLUMN bank_name TEXT DEFAULT ''")
+    if "account_number" not in existing_cols:
+        cursor.execute("ALTER TABLE students ADD COLUMN account_number TEXT DEFAULT ''")
+    if "account_name" not in existing_cols:
+        cursor.execute("ALTER TABLE students ADD COLUMN account_name TEXT DEFAULT ''")
 
     # Pay Periods table
     cursor.execute("""
@@ -54,6 +66,24 @@ def init_db():
         FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
         FOREIGN KEY (period_id) REFERENCES periods(id) ON DELETE CASCADE,
         UNIQUE(student_id, period_id, date)
+    )
+    """)
+
+    # Payouts Tracking table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS payouts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL,
+        period_id INTEGER NOT NULL,
+        amount REAL NOT NULL,
+        payment_status TEXT NOT NULL DEFAULT 'pending' CHECK(payment_status IN ('pending', 'processing', 'disbursed')),
+        transaction_ref TEXT,
+        paid_at TIMESTAMP,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (period_id) REFERENCES periods(id) ON DELETE CASCADE,
+        UNIQUE(student_id, period_id)
     )
     """)
 

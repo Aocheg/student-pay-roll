@@ -12,6 +12,13 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- QRCode.js CDN for client-side badge generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- html5-qrcode CDN for webcam scanner -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
   <script>
     tailwind.config = {
       theme: {
@@ -49,7 +56,6 @@
       font-weight: 700;
       border-right: 3px solid #10b981;
     }
-    /* Custom subtle scrollbar */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -82,7 +88,7 @@
         <div class="flex items-center gap-1.5 mt-1.5">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span class="text-[11px] font-semibold text-emerald-700 tracking-wide">Payroll Engine</span>
-          <span class="text-[10px] font-mono px-1.5 py-0.2 bg-slate-100 text-slate-500 rounded font-bold">v1.0</span>
+          <span class="text-[10px] font-mono px-1.5 py-0.2 bg-slate-100 text-slate-500 rounded font-bold">v2.0</span>
         </div>
       </div>
     </div>
@@ -116,7 +122,7 @@
         </div>
         <div class="flex-1">
           <div class="leading-tight">Dashboard Overview</div>
-          <div class="text-[10px] text-slate-400 font-normal mt-0.5">Summary & analytics</div>
+          <div class="text-[10px] text-slate-400 font-normal mt-0.5">Summary & charts</div>
         </div>
       </button>
 
@@ -127,7 +133,7 @@
         </div>
         <div class="flex-1">
           <div class="leading-tight">Payroll & Payouts</div>
-          <div class="text-[10px] text-slate-400 font-normal mt-0.5">70% rule calculation sheet</div>
+          <div class="text-[10px] text-slate-400 font-normal mt-0.5">70% rule & PDF payslips</div>
         </div>
       </button>
 
@@ -138,7 +144,7 @@
         </div>
         <div class="flex-1">
           <div class="leading-tight">Attendance Register</div>
-          <div class="text-[10px] text-slate-400 font-normal mt-0.5">Daily session logs</div>
+          <div class="text-[10px] text-slate-400 font-normal mt-0.5">Daily logs & CSV import</div>
         </div>
       </button>
 
@@ -149,7 +155,7 @@
         </div>
         <div class="flex-1">
           <div class="leading-tight">Student Directory</div>
-          <div class="text-[10px] text-slate-400 font-normal mt-0.5">Enrolled roster & rates</div>
+          <div class="text-[10px] text-slate-400 font-normal mt-0.5">Banking & QR Badges</div>
         </div>
       </button>
 
@@ -165,14 +171,23 @@
       </button>
     </nav>
 
-    <!-- Sidebar Footer / Status Badge -->
+    <!-- Sidebar Footer / Quick Tools -->
     <div class="p-4 border-t border-slate-100 space-y-2.5 bg-slate-50/40">
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="openModal('modal-qr-scanner')" class="py-2 px-2.5 text-[11px] font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs">
+          <i class="fa-solid fa-qrcode text-emerald-400"></i> QR Scanner
+        </button>
+        <button onclick="openModal('modal-csv-upload')" class="py-2 px-2.5 text-[11px] font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-2xs">
+          <i class="fa-solid fa-file-import text-blue-500"></i> Import CSV
+        </button>
+      </div>
+
       <div class="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 text-[11px] text-emerald-900">
         <div class="font-bold flex items-center gap-1.5 text-emerald-800">
-          <i class="fa-solid fa-shield-halved text-emerald-600"></i> Strict 70% Cutoff
+          <i class="fa-solid fa-shield-halved text-emerald-600"></i> Strict 70% Policy
         </div>
         <p class="text-[10px] text-emerald-700/80 mt-1 leading-snug">
-          Payments automatically freeze for any student below 70.0% attendance.
+          Attendance under 70% automatically sets payout to $0.00.
         </p>
       </div>
 
@@ -204,14 +219,20 @@
       </div>
 
       <!-- Top Right Controls -->
-      <div class="flex items-center gap-2.5">
-        <!-- Discreet Policy Pill Button that toggles the policy modal -->
-        <button onclick="openModal('modal-policy-rule')" class="px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100/70 text-emerald-800 text-xs font-semibold transition-all flex items-center gap-1.5 shadow-2xs">
+      <div class="flex items-center gap-2">
+        <!-- QR Checkin Quick Button -->
+        <button onclick="openModal('modal-qr-scanner')" class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs">
+          <i class="fa-solid fa-qrcode text-emerald-600"></i>
+          <span>Check-in Scanner</span>
+        </button>
+
+        <!-- Discreet Policy Pill Button -->
+        <button onclick="openModal('modal-policy-rule')" class="px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100/70 text-emerald-800 text-xs font-semibold transition-all flex items-center gap-1.5 shadow-2xs">
           <i class="fa-solid fa-circle-info text-emerald-600"></i>
           <span>70% Attendance Rule</span>
         </button>
 
-        <button onclick="openModal('modal-add-student')" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm shadow-emerald-600/30">
+        <button onclick="openModal('modal-add-student')" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm shadow-emerald-600/30">
           <i class="fa-solid fa-user-plus"></i>
           <span>Add Student</span>
         </button>
@@ -222,7 +243,7 @@
     <main class="flex-1 p-6 md:p-8 overflow-y-auto space-y-6">
 
       <!-- ========================================== -->
-      <!-- VIEW 1: DASHBOARD OVERVIEW -->
+      <!-- VIEW 1: DASHBOARD OVERVIEW (With Interactive Charts) -->
       <!-- ========================================== -->
       <section id="view-dashboard" class="space-y-6">
 
@@ -241,13 +262,13 @@
 
           <!-- Quick Action Buttons -->
           <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button onclick="openModal('modal-qr-scanner')" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-sm shadow-emerald-600/30">
+              <i class="fa-solid fa-qrcode"></i>
+              <span>Open QR Check-in</span>
+            </button>
             <button onclick="switchView('view-payroll')" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-xs">
               <i class="fa-solid fa-file-invoice-dollar text-emerald-400"></i>
-              <span>View Payroll Sheet</span>
-            </button>
-            <button onclick="switchView('view-attendance')" class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold transition-all flex items-center gap-2 shadow-2xs">
-              <i class="fa-solid fa-calendar-check text-blue-500"></i>
-              <span>Log Session</span>
+              <span>Payroll Sheet</span>
             </button>
           </div>
         </div>
@@ -268,7 +289,7 @@
                 <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700" id="kpi-eligible-badge">
                   <i class="fa-solid fa-circle-check"></i> Eligible Only
                 </span>
-                <span class="text-slate-400 text-[11px]">Approved for disbursal</span>
+                <span class="text-slate-400 text-[11px]">Approved payouts</span>
               </div>
             </div>
           </div>
@@ -328,43 +349,53 @@
           </div>
         </div>
 
+        <!-- ========================================== -->
+        <!-- FEATURE 5: INTERACTIVE VISUAL CHARTS (CHART.JS) -->
+        <!-- ========================================== -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Chart 1: Student Attendance vs 70% Cutoff Bar Chart -->
+          <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h4 class="font-extrabold text-slate-900 text-sm">Student Attendance vs. 70% Threshold</h4>
+                <p class="text-xs text-slate-400">Green indicates passing; red indicates sub-70% cutoff</p>
+              </div>
+              <span class="text-xs font-mono text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                Cutoff Line: 70.0%
+              </span>
+            </div>
+            <div class="relative h-64">
+              <canvas id="attendanceBarChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart 2: Cohort Eligibility Distribution Donut Chart -->
+          <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+            <div>
+              <h4 class="font-extrabold text-slate-900 text-sm">Cohort Eligibility Ratio</h4>
+              <p class="text-xs text-slate-400 mb-3">Passing (≥ 70%) vs Substandard (< 70%)</p>
+              <div class="relative h-48 flex items-center justify-center">
+                <canvas id="eligibilityDoughnutChart"></canvas>
+              </div>
+            </div>
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-around text-xs">
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                <span class="font-bold text-slate-700" id="chart-legend-eligible">Eligible</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                <span class="font-bold text-slate-700" id="chart-legend-ineligible">Ineligible</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 2-COLUMN SECTION: MAIN CONTENT & INSTITUTIONAL POLICY CARD -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          <!-- Left Column: Attendance Health Breakdown & Quick Preview -->
+          <!-- Left Column: Cohort Roster Quick Preview Table -->
           <div class="lg:col-span-2 space-y-6">
-
-            <!-- Cohort Attendance Spectrum Bar -->
-            <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs">
-              <div class="flex items-center justify-between mb-4">
-                <div>
-                  <h4 class="font-extrabold text-slate-900 text-sm">Attendance Distribution Spectrum</h4>
-                  <p class="text-xs text-slate-400">Proportion of student cohort meeting versus failing the 70% threshold</p>
-                </div>
-                <span class="text-xs font-mono text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                  Target: ≥ 70.0%
-                </span>
-              </div>
-
-              <!-- Multi-Segment Bar -->
-              <div class="w-full bg-slate-100 rounded-xl h-3.5 flex overflow-hidden p-0.5">
-                <div id="spectrum-eligible" class="bg-emerald-500 h-full rounded-l-lg transition-all" style="width: 62.5%" title="Eligible (≥ 70%)"></div>
-                <div id="spectrum-ineligible" class="bg-rose-400 h-full rounded-r-lg transition-all" style="width: 37.5%" title="Ineligible (< 70%)"></div>
-              </div>
-
-              <div class="flex items-center justify-between mt-3 text-xs">
-                <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                  <span class="font-semibold text-slate-700" id="spectrum-label-eligible">Eligible (62.5%)</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
-                  <span class="font-semibold text-slate-700" id="spectrum-label-ineligible">Ineligible (37.5%)</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Cohort Roster Quick Preview Table -->
             <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
               <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div>
@@ -394,15 +425,13 @@
                 </table>
               </div>
             </div>
-
           </div>
 
-          <!-- Right Column: THE STRATEGICALLY PLACED INSTITUTIONAL POLICY CARD -->
+          <!-- Right Column: INSTITUTIONAL POLICY CARD & SHORTCUTS -->
           <div class="space-y-6">
 
-            <!-- THE POLICY CARD: Beautiful, compact, official and un-crowded! -->
+            <!-- THE POLICY CARD -->
             <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-2xl p-6 shadow-md border border-slate-700 relative overflow-hidden">
-              <!-- Decorative subtle background badge -->
               <div class="absolute -right-6 -bottom-6 text-white/5 text-9xl font-black select-none pointer-events-none">
                 70%
               </div>
@@ -415,14 +444,12 @@
                   <span class="text-[10px] font-mono text-slate-400">MANDATORY</span>
                 </div>
 
-                <!-- Highlighted exact user policy quote in a distinct elegant presentation -->
                 <div class="p-3.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-xs">
                   <p class="text-xs text-slate-200 leading-relaxed italic">
                     "Students receive stipend strictly based on verified attendance (Daily Rate × Days Present), provided attendance is at or above 70%. Anyone below 70% receives $0.00."
                   </p>
                 </div>
 
-                <!-- Mathematical Breakdown -->
                 <div class="space-y-2 pt-1 font-mono text-xs">
                   <div class="flex items-center justify-between text-slate-300 pb-1 border-b border-white/10">
                     <span class="text-[11px] text-slate-400">Payment Formula:</span>
@@ -447,14 +474,21 @@
               </div>
             </div>
 
-            <!-- Quick Navigation Shortcuts -->
+            <!-- Quick Operations -->
             <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-3">
               <h4 class="font-extrabold text-slate-900 text-xs uppercase tracking-wider text-slate-400">Quick Operations</h4>
               
               <div class="space-y-2">
-                <button onclick="switchView('view-attendance')" class="w-full p-2.5 rounded-xl hover:bg-slate-50 border border-slate-100 flex items-center justify-between text-xs text-slate-700 transition-colors group">
+                <button onclick="openModal('modal-qr-scanner')" class="w-full p-2.5 rounded-xl hover:bg-slate-50 border border-slate-100 flex items-center justify-between text-xs text-slate-700 transition-colors group">
                   <span class="flex items-center gap-2 font-semibold">
-                    <i class="fa-solid fa-calendar-plus text-blue-500 w-4"></i> Log Today's Session
+                    <i class="fa-solid fa-qrcode text-emerald-600 w-4"></i> Scan QR Student Badge
+                  </span>
+                  <i class="fa-solid fa-chevron-right text-[10px] text-slate-400 group-hover:translate-x-0.5 transition-transform"></i>
+                </button>
+
+                <button onclick="openModal('modal-csv-upload')" class="w-full p-2.5 rounded-xl hover:bg-slate-50 border border-slate-100 flex items-center justify-between text-xs text-slate-700 transition-colors group">
+                  <span class="flex items-center gap-2 font-semibold">
+                    <i class="fa-solid fa-file-import text-blue-500 w-4"></i> Bulk Upload Attendance (CSV)
                   </span>
                   <i class="fa-solid fa-chevron-right text-[10px] text-slate-400 group-hover:translate-x-0.5 transition-transform"></i>
                 </button>
@@ -462,13 +496,6 @@
                 <button onclick="exportCSV()" class="w-full p-2.5 rounded-xl hover:bg-slate-50 border border-slate-100 flex items-center justify-between text-xs text-slate-700 transition-colors group">
                   <span class="flex items-center gap-2 font-semibold">
                     <i class="fa-solid fa-file-arrow-down text-emerald-600 w-4"></i> Download Full CSV Sheet
-                  </span>
-                  <i class="fa-solid fa-chevron-right text-[10px] text-slate-400 group-hover:translate-x-0.5 transition-transform"></i>
-                </button>
-
-                <button onclick="openModal('modal-add-student')" class="w-full p-2.5 rounded-xl hover:bg-slate-50 border border-slate-100 flex items-center justify-between text-xs text-slate-700 transition-colors group">
-                  <span class="flex items-center gap-2 font-semibold">
-                    <i class="fa-solid fa-user-plus text-purple-500 w-4"></i> Register New Student
                   </span>
                   <i class="fa-solid fa-chevron-right text-[10px] text-slate-400 group-hover:translate-x-0.5 transition-transform"></i>
                 </button>
@@ -482,13 +509,13 @@
       </section>
 
       <!-- ========================================== -->
-      <!-- VIEW 2: PAYROLL CALCULATION SHEET -->
+      <!-- VIEW 2: PAYROLL CALCULATION SHEET (With PDF & Banking) -->
       <!-- ========================================== -->
       <section id="view-payroll" class="hidden space-y-4">
         <!-- View Top Card -->
         <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h3 class="text-base font-extrabold text-slate-900">Student Payroll Computation Sheet</h3>
+            <h3 class="text-base font-extrabold text-slate-900">Student Payroll & Disbursal Sheet</h3>
             <p class="text-xs text-slate-500 mt-0.5">Strict enforcement: Students with attendance ≥ 70% receive pro-rated pay. Below 70% receives $0.00.</p>
           </div>
           <div class="flex items-center gap-2">
@@ -503,7 +530,7 @@
           <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50/40">
             <!-- Filter Pills -->
             <div class="flex items-center gap-2">
-              <button onclick="filterPayrollTable('all')" id="filter-btn-all" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white transition-all">
+              <button onclick="filterPayrollTable('all')" id="filter-btn-all" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white transition-all shadow-xs">
                 All Students (<span id="count-all">0</span>)
               </button>
               <button onclick="filterPayrollTable('eligible')" id="filter-btn-eligible" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-all">
@@ -516,7 +543,7 @@
 
             <!-- Search box -->
             <div class="relative w-full md:w-64">
-              <input type="text" id="payroll-search" oninput="searchPayrollTable()" placeholder="Search by student name or ID..." class="w-full bg-white border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"/>
+              <input type="text" id="payroll-search" oninput="searchPayrollTable()" placeholder="Search student name, ID, or bank..." class="w-full bg-white border border-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"/>
               <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
             </div>
           </div>
@@ -527,17 +554,18 @@
               <thead class="bg-slate-100/75 text-[11px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
                 <tr>
                   <th class="py-3.5 px-5">Student Details</th>
+                  <th class="py-3.5 px-4">Banking & Payout Method</th>
                   <th class="py-3.5 px-4">Presence / Sessions</th>
                   <th class="py-3.5 px-4">Attendance Rate</th>
                   <th class="py-3.5 px-4">Eligibility Status</th>
-                  <th class="py-3.5 px-4">Daily Rate</th>
-                  <th class="py-3.5 px-5 text-right">Computed Pay</th>
-                  <th class="py-3.5 px-4 text-center">Action</th>
+                  <th class="py-3.5 px-4 text-right">Computed Pay</th>
+                  <th class="py-3.5 px-4 text-center">Payout Status</th>
+                  <th class="py-3.5 px-5 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody id="payroll-table-body" class="divide-y divide-slate-100">
                 <tr>
-                  <td colspan="7" class="py-8 text-center text-slate-400 font-mono text-xs">Loading payroll calculations...</td>
+                  <td colspan="8" class="py-8 text-center text-slate-400 font-mono text-xs">Loading payroll calculations...</td>
                 </tr>
               </tbody>
             </table>
@@ -546,7 +574,7 @@
       </section>
 
       <!-- ========================================== -->
-      <!-- VIEW 3: DAILY ATTENDANCE LOGGER -->
+      <!-- VIEW 3: DAILY ATTENDANCE LOGGER (With CSV Import & QR) -->
       <!-- ========================================== -->
       <section id="view-attendance" class="hidden space-y-4">
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6">
@@ -555,8 +583,14 @@
               <h3 class="font-extrabold text-slate-900 text-base">Daily Attendance Register</h3>
               <p class="text-xs text-slate-400">Select any session date to mark Present, Absent, or Excused status for each student.</p>
             </div>
-            <div class="flex items-center gap-3">
-              <label class="text-xs font-bold text-slate-600">Session Date:</label>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <button onclick="openModal('modal-csv-upload')" class="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs">
+                <i class="fa-solid fa-file-import"></i> Bulk Upload CSV
+              </button>
+              <button onclick="openModal('modal-qr-scanner')" class="px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all flex items-center gap-1.5 shadow-2xs">
+                <i class="fa-solid fa-qrcode"></i> Digital QR Scan
+              </button>
+              <label class="text-xs font-bold text-slate-600 ml-2">Session Date:</label>
               <input type="date" id="attendance-date-picker" onchange="loadAttendanceForDate()" class="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
               <button onclick="markAllPresent()" class="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl border border-slate-200 transition-all">
                 Mark All Present
@@ -589,14 +623,14 @@
       </section>
 
       <!-- ========================================== -->
-      <!-- VIEW 4: STUDENT DIRECTORY & RATES -->
+      <!-- VIEW 4: STUDENT DIRECTORY & RATES (With QR Badge & Banking) -->
       <!-- ========================================== -->
       <section id="view-students" class="hidden space-y-4">
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
           <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/40">
             <div>
               <h3 class="font-extrabold text-slate-900 text-base">Enrolled Student Directory</h3>
-              <p class="text-xs text-slate-400">Configure student records and assigned daily stipend rates.</p>
+              <p class="text-xs text-slate-400">Configure student banking records, daily rates, and digital QR identification passes.</p>
             </div>
             <button onclick="openModal('modal-add-student')" class="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center gap-2 shadow-sm shadow-emerald-600/20 transition-all">
               <i class="fa-solid fa-user-plus"></i>
@@ -611,7 +645,9 @@
                   <th class="py-3.5 px-5">Student ID</th>
                   <th class="py-3.5 px-4">Name</th>
                   <th class="py-3.5 px-4">Email</th>
-                  <th class="py-3.5 px-4">Assigned Stipend Rate</th>
+                  <th class="py-3.5 px-4">Banking Information</th>
+                  <th class="py-3.5 px-4">Daily Stipend Rate</th>
+                  <th class="py-3.5 px-4 text-center">QR Pass</th>
                   <th class="py-3.5 px-4 text-center">Action</th>
                 </tr>
               </thead>
@@ -662,8 +698,241 @@
   </div>
 
   <!-- ========================================== -->
-  <!-- MODAL: OFFICIAL POLICY & COMPLIANCE MODAL -->
+  <!-- MODAL: FEATURE 2: CSV ATTENDANCE IMPORT -->
   <!-- ========================================== -->
+  <div id="modal-csv-upload" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-150">
+      <div class="bg-slate-900 text-white p-6 relative">
+        <button onclick="closeModal('modal-csv-upload')" class="absolute top-5 right-5 text-slate-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-blue-500/20 text-blue-400 border border-blue-500/40 flex items-center justify-center text-xl font-bold">
+            <i class="fa-solid fa-file-csv"></i>
+          </div>
+          <div>
+            <span class="text-[10px] font-mono uppercase tracking-widest text-blue-400 font-bold">Bulk Attendance Import</span>
+            <h3 class="text-lg font-black">Upload Attendance CSV</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Upload attendance records exported from external spreadsheets or card turnstiles. Columns required: <code class="font-mono bg-slate-100 text-slate-800 px-1 py-0.5 rounded">student_code, date, status, notes</code>.
+        </p>
+
+        <div class="border-2 border-dashed border-slate-200 hover:border-emerald-500 rounded-2xl p-6 text-center cursor-pointer transition-colors bg-slate-50/50" onclick="document.getElementById('csv-file-input').click()">
+          <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="onCSVFileSelected(event)"/>
+          <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center text-xl mx-auto mb-2">
+            <i class="fa-solid fa-cloud-arrow-up text-emerald-600"></i>
+          </div>
+          <div class="text-xs font-bold text-slate-800" id="csv-selected-filename">Select a CSV File</div>
+          <div class="text-[11px] text-slate-400 mt-0.5">Click to browse your computer</div>
+        </div>
+
+        <div class="flex items-center justify-between text-xs pt-1">
+          <span class="text-slate-400">Need the exact format?</span>
+          <a href="/api/attendance/sample-template" download class="font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1">
+            <i class="fa-solid fa-download"></i> Download Template CSV
+          </a>
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+        <button onclick="closeModal('modal-csv-upload')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl">
+          Cancel
+        </button>
+        <button onclick="submitCSVUpload()" id="btn-submit-csv" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md shadow-emerald-600/30 flex items-center gap-1.5">
+          <i class="fa-solid fa-upload"></i> Upload & Apply
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: FEATURE 3: DIGITAL QR SCANNER CONSOLE -->
+  <!-- ========================================== -->
+  <div id="modal-qr-scanner" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-150">
+      <div class="bg-slate-900 text-white p-6 relative">
+        <button onclick="closeQRScannerModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xl font-bold">
+            <i class="fa-solid fa-qrcode"></i>
+          </div>
+          <div>
+            <span class="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-bold">Classroom Check-in Console</span>
+            <h3 class="text-lg font-black">Digital QR Badge Scanner</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <!-- Quick Manual / Barcode Input Field -->
+        <div class="space-y-1">
+          <label class="block text-xs font-bold text-slate-700">Scan Badge Barcode / QR Code or Type Matriculation ID:</label>
+          <div class="flex gap-2">
+            <input type="text" id="qr-input-manual" placeholder="e.g. STU-105 or scan badge..." onkeydown="if(event.key==='Enter') submitManualCheckin()" class="flex-1 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none"/>
+            <button onclick="submitManualCheckin()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs">
+              Check In
+            </button>
+          </div>
+        </div>
+
+        <!-- Camera Scanner Area -->
+        <div class="border border-slate-200 rounded-2xl overflow-hidden bg-slate-950 p-2 text-center text-white relative">
+          <div id="qr-reader" class="w-full"></div>
+          <div class="py-2 text-[11px] text-slate-400 font-medium flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-camera text-emerald-400"></i>
+            <span>Point student QR badge toward camera, or use USB barcode scanner above</span>
+          </div>
+        </div>
+
+        <!-- Result Card -->
+        <div id="qr-checkin-result" class="hidden rounded-2xl p-4 border transition-all">
+          <!-- Dynamically populated on successful scan -->
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+        <button onclick="closeQRScannerModal()" class="px-5 py-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: FEATURE 3: STUDENT QR BADGE PASS -->
+  <!-- ========================================== -->
+  <div id="modal-qr-badge" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-150">
+      <!-- Badge Front Card (ID Style) -->
+      <div class="bg-gradient-to-br from-emerald-900 via-teal-900 to-slate-900 text-white p-6 relative text-center">
+        <button onclick="closeModal('modal-qr-badge')" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase font-mono tracking-wider mb-2">
+          Official Student Pass
+        </div>
+        <h3 class="text-lg font-black text-white" id="badge-name">-</h3>
+        <p class="text-xs font-mono text-emerald-400" id="badge-code">-</p>
+      </div>
+
+      <!-- QR Code Body -->
+      <div class="p-6 text-center space-y-4">
+        <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-sm inline-block mx-auto">
+          <div id="qrcode-canvas" class="flex items-center justify-center"></div>
+        </div>
+
+        <div class="text-xs text-slate-500 space-y-1">
+          <div class="font-bold text-slate-800" id="badge-email">-</div>
+          <div class="font-mono text-[11px] text-slate-400">Scan at classroom check-in terminal</div>
+        </div>
+
+        <div class="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-[11px] text-emerald-900 font-medium">
+          <i class="fa-solid fa-shield-halved text-emerald-600 mr-1"></i>
+          Requires 70% attendance for stipend disbursal
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-center gap-2">
+        <button onclick="window.print()" class="px-4 py-2 text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl transition-all">
+          <i class="fa-solid fa-print"></i> Print Badge
+        </button>
+        <button onclick="closeModal('modal-qr-badge')" class="px-4 py-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: FEATURE 4: PAYOUT DISBURSAL MANAGER -->
+  <!-- ========================================== -->
+  <div id="modal-payout-manage" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-150">
+      <div class="bg-slate-900 text-white p-6 relative">
+        <button onclick="closeModal('modal-payout-manage')" class="absolute top-5 right-5 text-slate-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xl font-bold">
+            <i class="fa-solid fa-credit-card"></i>
+          </div>
+          <div>
+            <span class="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-bold">Disbursal Gateway</span>
+            <h3 class="text-lg font-black" id="payout-stu-name">Manage Payout</h3>
+            <p class="text-xs text-slate-300 font-mono" id="payout-stu-code">-</p>
+          </div>
+        </div>
+      </div>
+
+      <form id="form-manage-payout" onsubmit="submitPayoutStatusUpdate(event)" class="p-6 space-y-4">
+        <!-- Amount Highlight -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+          <div>
+            <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Approved Stipend Amount</div>
+            <div class="text-2xl font-black font-mono text-emerald-700" id="payout-amount-display">$0.00</div>
+          </div>
+          <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800">
+            ≥ 70% Eligible
+          </span>
+        </div>
+
+        <!-- Student Banking Info Card -->
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 space-y-1.5 text-xs font-mono text-slate-600">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Bank Name:</span>
+            <span class="font-bold text-slate-900" id="payout-bank-name">Chase Bank</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Account Number:</span>
+            <span class="font-bold text-slate-900" id="payout-acc-number">1029384756</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Account Holder:</span>
+            <span class="font-bold text-slate-900" id="payout-acc-name">-</span>
+          </div>
+        </div>
+
+        <!-- Payment Status Selector -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Disbursal Status</label>
+          <select id="payout-status-select" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none bg-white">
+            <option value="pending">Pending Transfer</option>
+            <option value="processing">Processing / In Transit</option>
+            <option value="disbursed">Disbursed (Paid to Student)</option>
+          </select>
+        </div>
+
+        <!-- Transaction Reference Number -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Bank Transaction Reference No.</label>
+          <input type="text" id="payout-txn-ref" placeholder="e.g. TXN-202610-09384" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none"/>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Disbursal Notes / Remarks</label>
+          <input type="text" id="payout-notes" placeholder="Optional audit remarks..." class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none"/>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="closeModal('modal-payout-manage')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl">
+            Cancel
+          </button>
+          <button type="submit" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md shadow-emerald-600/30">
+            Save Status
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Policy Rule -->
   <div id="modal-policy-rule" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-150">
       <div class="bg-slate-900 text-white p-6 relative">
@@ -721,7 +990,6 @@
   <!-- MODAL: Payslip Detail / Audit View -->
   <div id="modal-payslip" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden">
-      <!-- Header -->
       <div class="bg-slate-900 text-white p-6 relative">
         <button onclick="closeModal('modal-payslip')" class="absolute top-5 right-5 text-slate-400 hover:text-white text-lg">
           <i class="fa-solid fa-xmark"></i>
@@ -738,14 +1006,10 @@
         </div>
       </div>
 
-      <!-- Body -->
       <div class="p-6 space-y-5">
-        <!-- Status Banner -->
         <div id="slip-status-banner" class="rounded-2xl p-4 border flex items-start gap-3">
-          <!-- Dynamically filled -->
         </div>
 
-        <!-- Breakdown List -->
         <div class="bg-slate-50 rounded-2xl p-4 space-y-2.5 text-xs border border-slate-100 font-mono">
           <div class="flex justify-between text-slate-600">
             <span>Pay Period:</span>
@@ -788,17 +1052,98 @@
       </div>
 
       <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
-        <button onclick="window.print()" class="px-4 py-2 text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl transition-all">
-          <i class="fa-solid fa-print"></i> Print
+        <button onclick="downloadActiveStudentPDF()" class="px-4 py-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+          <i class="fa-solid fa-file-pdf text-rose-400"></i> Download Official PDF
         </button>
-        <button onclick="closeModal('modal-payslip')" class="px-4 py-2 text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all">
+        <button onclick="closeModal('modal-payslip')" class="px-4 py-2 text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl transition-all">
           Close
         </button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: Add Student -->
+  <!-- MODAL: Update Student Attendance & Threshold Check -->
+  <div id="modal-update-attendance" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-150">
+      <div class="bg-slate-900 text-white p-6 relative">
+        <button onclick="closeModal('modal-update-attendance')" class="absolute top-5 right-5 text-slate-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xl font-bold">
+            <i class="fa-solid fa-clipboard-check"></i>
+          </div>
+          <div>
+            <span class="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-bold">Live Attendance Adjuster</span>
+            <h3 class="text-xl font-extrabold" id="upd-stu-name">Update Attendance</h3>
+            <p class="text-xs text-slate-300 font-mono" id="upd-stu-details">STU-105 • $60.00/session</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-6 space-y-5">
+        <div id="upd-status-card" class="rounded-2xl p-4 border transition-all">
+        </div>
+
+        <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-700">Days Present in Cohort:</span>
+            <span class="text-xs font-mono text-slate-400" id="upd-sessions-quota">Out of 20 Total Sessions</span>
+          </div>
+
+          <div class="flex items-center justify-center gap-3 py-1">
+            <button type="button" onclick="adjustPresentStepper(-1)" class="w-11 h-11 rounded-xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-lg border border-slate-200 flex items-center justify-center shadow-2xs transition-all active:scale-95">
+              <i class="fa-solid fa-minus"></i>
+            </button>
+            <div class="w-24 text-center">
+              <input type="number" id="upd-present-input" oninput="onPresentInputChange()" min="0" max="20" class="w-full text-center text-3xl font-black font-mono text-slate-900 bg-white border border-slate-200 rounded-xl py-1 shadow-inner focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"/>
+              <div class="text-[10px] uppercase font-bold text-slate-400 mt-1">Present Days</div>
+            </div>
+            <button type="button" onclick="adjustPresentStepper(1)" class="w-11 h-11 rounded-xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-lg border border-slate-200 flex items-center justify-center shadow-2xs transition-all active:scale-95">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
+
+          <div class="pt-1 flex justify-center">
+            <button type="button" onclick="quickJumpToThreshold()" class="px-3 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/70 hover:bg-emerald-200/70 rounded-lg border border-emerald-300/60 transition-all flex items-center gap-1.5 cursor-pointer">
+              <i class="fa-solid fa-bolt"></i> Jump to 70% Cutoff (<span id="upd-threshold-days">14</span> Days)
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-1.5 text-xs font-mono text-slate-600 bg-white p-3 rounded-xl border border-slate-100">
+          <div class="flex justify-between">
+            <span>Calculated Attendance:</span>
+            <span class="font-bold text-slate-900" id="upd-live-pct">65.0%</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Minimum Requirement:</span>
+            <span class="font-bold text-slate-700">70.0% Minimum</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Stipend Rate:</span>
+            <span class="font-bold text-slate-900" id="upd-live-rate">$60.00 / session</span>
+          </div>
+          <div class="border-t border-slate-100 pt-1 flex justify-between font-bold text-sm">
+            <span>Net Stipend Payout:</span>
+            <span id="upd-live-payout" class="text-rose-600 font-mono">$0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+        <button type="button" onclick="closeModal('modal-update-attendance')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all">
+          Cancel
+        </button>
+        <button type="button" onclick="saveStudentAttendanceUpdate()" id="btn-save-upd" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md shadow-emerald-600/30 flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-floppy-disk"></i>
+          <span>Save Attendance & Update Payout</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Add Student (With Banking Fields) -->
   <div id="modal-add-student" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
       <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
@@ -828,6 +1173,21 @@
             <input type="text" id="new-stu-currency" value="$" required class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none"/>
           </div>
         </div>
+        <!-- Banking Fields -->
+        <div class="pt-2 border-t border-slate-100">
+          <div class="text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-2">Banking & Payout Method</div>
+          <div class="space-y-2">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Bank Name</label>
+              <input type="text" id="new-stu-bank" placeholder="e.g. Chase Bank, Zenith Bank" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none"/>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Account Number</label>
+              <input type="text" id="new-stu-acc" placeholder="e.g. 1029384756" class="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none"/>
+            </div>
+          </div>
+        </div>
+
         <div class="pt-3 flex justify-end gap-2 border-t border-slate-100">
           <button type="button" onclick="closeModal('modal-add-student')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl">Cancel</button>
           <button type="submit" class="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm">Save Student</button>
@@ -873,91 +1233,6 @@
           <button type="submit" class="px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm">Save Cohort</button>
         </div>
       </form>
-    </div>
-  </div>
-
-  <!-- MODAL: Update Student Attendance & Threshold Check -->
-  <div id="modal-update-attendance" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in duration-150">
-      <div class="bg-slate-900 text-white p-6 relative">
-        <button onclick="closeModal('modal-update-attendance')" class="absolute top-5 right-5 text-slate-400 hover:text-white text-lg">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xl font-bold">
-            <i class="fa-solid fa-clipboard-check"></i>
-          </div>
-          <div>
-            <span class="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-bold">Live Attendance Adjuster</span>
-            <h3 class="text-xl font-extrabold" id="upd-stu-name">Update Attendance</h3>
-            <p class="text-xs text-slate-300 font-mono" id="upd-stu-details">STU-105 • $60.00/session</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-6 space-y-5">
-        <!-- Live Threshold & Payout Status Card -->
-        <div id="upd-status-card" class="rounded-2xl p-4 border transition-all">
-          <!-- Dynamic contents updated in real-time as user changes days -->
-        </div>
-
-        <!-- Attendance Stepper & Direct Input -->
-        <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-700">Days Present in Cohort:</span>
-            <span class="text-xs font-mono text-slate-400" id="upd-sessions-quota">Out of 20 Total Sessions</span>
-          </div>
-
-          <div class="flex items-center justify-center gap-3 py-1">
-            <button type="button" onclick="adjustPresentStepper(-1)" class="w-11 h-11 rounded-xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-lg border border-slate-200 flex items-center justify-center shadow-2xs transition-all active:scale-95">
-              <i class="fa-solid fa-minus"></i>
-            </button>
-            <div class="w-24 text-center">
-              <input type="number" id="upd-present-input" oninput="onPresentInputChange()" min="0" max="20" class="w-full text-center text-3xl font-black font-mono text-slate-900 bg-white border border-slate-200 rounded-xl py-1 shadow-inner focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"/>
-              <div class="text-[10px] uppercase font-bold text-slate-400 mt-1">Present Days</div>
-            </div>
-            <button type="button" onclick="adjustPresentStepper(1)" class="w-11 h-11 rounded-xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-lg border border-slate-200 flex items-center justify-center shadow-2xs transition-all active:scale-95">
-              <i class="fa-solid fa-plus"></i>
-            </button>
-          </div>
-
-          <div class="pt-1 flex justify-center">
-            <button type="button" onclick="quickJumpToThreshold()" class="px-3 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/70 hover:bg-emerald-200/70 rounded-lg border border-emerald-300/60 transition-all flex items-center gap-1.5 cursor-pointer">
-              <i class="fa-solid fa-bolt"></i> Jump to 70% Cutoff (<span id="upd-threshold-days">14</span> Days)
-            </button>
-          </div>
-        </div>
-
-        <!-- Breakdown Details -->
-        <div class="space-y-1.5 text-xs font-mono text-slate-600 bg-white p-3 rounded-xl border border-slate-100">
-          <div class="flex justify-between">
-            <span>Calculated Attendance:</span>
-            <span class="font-bold text-slate-900" id="upd-live-pct">65.0%</span>
-          </div>
-          <div class="flex justify-between">
-            <span>Minimum Requirement:</span>
-            <span class="font-bold text-slate-700">70.0% Minimum</span>
-          </div>
-          <div class="flex justify-between">
-            <span>Stipend Rate:</span>
-            <span class="font-bold text-slate-900" id="upd-live-rate">$60.00 / session</span>
-          </div>
-          <div class="border-t border-slate-100 pt-1 flex justify-between font-bold text-sm">
-            <span>Net Stipend Payout:</span>
-            <span id="upd-live-payout" class="text-rose-600 font-mono">$0.00</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
-        <button type="button" onclick="closeModal('modal-update-attendance')" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all">
-          Cancel
-        </button>
-        <button type="button" onclick="saveStudentAttendanceUpdate()" id="btn-save-upd" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md shadow-emerald-600/30 flex items-center gap-2 transition-all">
-          <i class="fa-solid fa-floppy-disk"></i>
-          <span>Save Attendance & Update Payout</span>
-        </button>
-      </div>
     </div>
   </div>
 

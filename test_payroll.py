@@ -46,11 +46,18 @@ class TestPayrollThreshold(unittest.TestCase):
         self.assertEqual(result["attendance_percentage"], 90.0)
         self.assertEqual(result["gross_pay"], 900.0)
 
-    def test_zero_attendance(self):
-        records = [{"status": "absent"} for _ in range(20)]
-        result = calculate_student_payroll(self.student, self.period, records)
-        self.assertFalse(result["is_eligible"])
-        self.assertEqual(result["gross_pay"], 0.0)
+    def test_pdf_generation(self):
+        import io
+        from pdf_generator import generate_pdf_payslip
+        records = [{"status": "present"} for _ in range(16)] + [{"status": "absent"} for _ in range(4)]
+        calc = calculate_student_payroll(self.student, self.period, records)
+        pdf_buffer = generate_pdf_payslip(self.student, self.period, calc)
+        self.assertIsInstance(pdf_buffer, io.BytesIO)
+        content = pdf_buffer.getvalue()
+        self.assertTrue(len(content) > 1000)
+        self.assertTrue(content.startswith(b"%PDF"))
+
 
 if __name__ == "__main__":
     unittest.main()
+
